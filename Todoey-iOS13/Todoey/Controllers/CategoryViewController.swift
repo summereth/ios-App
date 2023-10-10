@@ -6,13 +6,13 @@
 //
 
 import UIKit
-import RealmSwift
+import CoreData
 
 class CategoryViewController: UITableViewController {
     
-    var categories: Results<Category>?
+    var categoryArray = [Category]()
     
-    let realm = try! Realm()
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,10 +29,11 @@ class CategoryViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Category", style: .default) { alertAction in
             if textField.text != "" {
-                let newCategory = Category()
+                let newCategory = Category(context: self.context)
                 newCategory.name = textField.text!
                 
-                self.save(category: newCategory)
+                self.categoryArray.append(newCategory)
+                self.saveCategories()
             }
         }
         
@@ -47,20 +48,21 @@ class CategoryViewController: UITableViewController {
     
     func loadCategories() {
         
-        categories = realm.objects(Category.self)
-        
-        tableView.reloadData()
+        let request: NSFetchRequest<Category> = Category.fetchRequest()
+        do {
+            categoryArray = try context.fetch(request)
+        } catch {
+            print("Error when fetching context: \(error)")
+        }
         
     }
     
     
-    func save(category: Category) {
+    func saveCategories() {
         do {
-            try realm.write {
-                realm.add(category)
-            }
+            try context.save()
         } catch {
-            print("Error when saving category: \(error)")
+            print("Error when saving context: \(error)")
         }
         
         tableView.reloadData()
@@ -71,15 +73,15 @@ class CategoryViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return categories?.count ?? 1
+        return categoryArray.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let category = categories?[indexPath.row]
+        let category = categoryArray[indexPath.row]
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        cell.textLabel?.text = category?.name ?? "No category added yet"
+        cell.textLabel?.text = category.name
         
         return cell
     }
@@ -94,7 +96,7 @@ class CategoryViewController: UITableViewController {
         if segue.identifier == "goToItems" {
             let destinationVC = segue.destination as! TodoListViewController
             if let indexPath = tableView.indexPathForSelectedRow {
-                destinationVC.selectedCategory = categories?[indexPath.row]
+                destinationVC.selectedCategory = categoryArray[indexPath.row]
             }
         }
     }
