@@ -7,8 +7,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
     
     let realm = try! Realm()
     
@@ -19,6 +20,7 @@ class CategoryViewController: UITableViewController {
         super.viewDidLoad()
         
         loadCategories()
+        
     }
     
     
@@ -32,6 +34,7 @@ class CategoryViewController: UITableViewController {
             if textField.text != "" {
                 let newCategory = Category()
                 newCategory.name = textField.text!
+                newCategory.backgroundColor = UIColor.randomFlat().hexValue()
                 
                 self.save(category: newCategory)
             }
@@ -45,6 +48,7 @@ class CategoryViewController: UITableViewController {
         present(alert, animated: true)
     }
     
+    // MARK: - Data manipulation methods
     
     func loadCategories() {
         
@@ -64,6 +68,21 @@ class CategoryViewController: UITableViewController {
         tableView.reloadData()
     }
     
+    override func deleteObjectFromModel(at indexPath: IndexPath) {
+        
+        if let category = categories?[indexPath.row] {
+            do {
+                try realm.write {
+                    realm.delete(category)
+                }
+            } catch {
+                print("Error when deleting category: \(error)")
+            }
+        }
+        
+    }
+    
+    
     // MARK: - Table view data source methods
 
 
@@ -72,10 +91,12 @@ class CategoryViewController: UITableViewController {
         return categories?.count ?? 1
     }
     
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories added yet"
+        cell.backgroundColor = HexColor(categories?[indexPath.row].backgroundColor ?? "#FFFFFF")
         
         return cell
     }

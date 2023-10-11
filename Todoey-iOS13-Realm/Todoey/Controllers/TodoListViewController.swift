@@ -8,7 +8,7 @@
 import UIKit
 import RealmSwift
 
-class TodoListViewController: UITableViewController {
+class TodoListViewController: SwipeTableViewController {
     
     var toDoItems: Results<Item>?
     let realm = try! Realm()
@@ -23,9 +23,12 @@ class TodoListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // The following code also works if we don't have didSet for the variable selectedCategory
+        // loadItems()
+        
     }
     
-    // MARK - Add new items
+    // MARK: - Add new items
     
     @IBAction func addButtonPressed(_ sender: Any) {
         
@@ -60,12 +63,28 @@ class TodoListViewController: UITableViewController {
     }
 
     
+    // MARK: - Data manipulation methods
+    
     func loadItems() {
         toDoItems = selectedCategory?.items.sorted(byKeyPath: "dateCreated", ascending: true)
         tableView.reloadData()
     }
     
-    // MARK - Tableview datasource methods
+    override func deleteObjectFromModel(at indexPath: IndexPath) {
+        
+        if let item = toDoItems?[indexPath.row] {
+            do {
+                try realm.write {
+                    realm.delete(item)
+                }
+            } catch {
+                print("Error when deleting item: \(error)")
+            }
+        }
+        
+    }
+    
+    // MARK: - Tableview datasource methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return toDoItems?.count ?? 1
@@ -74,14 +93,14 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let item = toDoItems?[indexPath.row]
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = item?.title
         cell.accessoryType = item?.done ?? false ? .checkmark : .none
         
         return cell
     }
 
-    // MARK - TableView delegate methods
+    // MARK: - TableView delegate methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         //print(itemArray[indexPath.row])
@@ -109,7 +128,7 @@ class TodoListViewController: UITableViewController {
 }
 
 
-//MARK - SearchBar delegate methods
+//MARK: - SearchBar delegate methods
 extension TodoListViewController: UISearchBarDelegate {
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         toDoItems = toDoItems?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "dateCreated", ascending: true)
